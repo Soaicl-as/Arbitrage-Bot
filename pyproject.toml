@@ -2,7 +2,7 @@
 name = "arbitrage-bot"
 version = "0.1.0"
 description = "A sports arbitrage betting bot"
-authors = ["Your Name, youremail@example.com"]
+authors = ["John Smith, Social.marketing638@gmail.com"]
 
 [tool.poetry.dependencies]
 python = "^3.11"
