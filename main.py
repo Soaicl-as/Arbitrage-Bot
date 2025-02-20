@@ -1,14 +1,13 @@
-# main.py
-import sys
-from arbit import start_bot  # Import the start_bot function from arbit.py
+from arbit import check_sports  # Import the check_sports function from arbit.py
 
-def main():
-    try:
-        print("Starting the Arbitrage Betting Bot...")
-        start_bot()  # This is where you call the function that starts your bot
-    except Exception as e:
-        print(f"An error occurred: {e}")
-        sys.exit(1)
-
+# Main execution
 if __name__ == "__main__":
-    main()  # Ensure main() gets called when running this file
+    try:
+        # Call the function that checks sports for arbitrage opportunities
+        check_sports()
+    except Exception as e:
+        # If an error occurs, send a critical failure email
+        import traceback
+        from arbit import send_email  # Import the send_email function from arbit.py
+        error_message = f"Critical error: {str(e)}\n{traceback.format_exc()}"
+        send_email("Arbitrage Bot Critical Failure", error_message)
