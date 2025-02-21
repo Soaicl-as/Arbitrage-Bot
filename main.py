@@ -9,7 +9,7 @@ app = Flask(__name__)
 
 # Email configurations
 SENDER_EMAIL = "Social.marketing638@gmail.com"
-SENDER_PASSWORD = "vojsif-bujxuw-jynTu6"
+SENDER_PASSWORD = "qqgx lluj wqmr rhgz"
 RECEIVER_EMAIL = "Ashishsharmaa2007@gmail.com"
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
