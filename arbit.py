@@ -5,11 +5,23 @@ from selenium.webdriver.chrome.options import Options
 import smtplib
 from email.mime.text import MIMEText
 import time
+import logging
 
-# Email credentials
-SENDER_EMAIL = "social.marketing638@gmail.com"
+# Email configurations
+SENDER_EMAIL = "Social.marketing638@gmail.com"
 SENDER_PASSWORD = "qqgx lluj wqmr rhgz"
 RECEIVER_EMAIL = "Ashishsharmaa2007@gmail.com"
+SMTP_SERVER = "smtp.gmail.com"
+SMTP_PORT = 587
+
+# Setup logging
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+
+# Heartbeat function to keep Render from marking the bot as inactive
+def send_heartbeat():
+    while True:
+        logging.info("Sending heartbeat to prevent inactivity.")
+        time.sleep(60)  # Send heartbeat every minute
 
 # Function to send email notifications
 def send_email(subject, body):
@@ -19,11 +31,12 @@ def send_email(subject, body):
     msg['To'] = RECEIVER_EMAIL
 
     try:
-        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
+        with smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT) as server:
             server.login(SENDER_EMAIL, SENDER_PASSWORD)
             server.sendmail(SENDER_EMAIL, RECEIVER_EMAIL, msg.as_string())
+            logging.info(f"Email sent: {subject}")
     except Exception as e:
-        print(f"Failed to send email: {e}")
+        logging.error(f"Failed to send email: {e}")
 
 # Function to scrape odds with error handling
 def scrape_odds(url, css_selector):
@@ -64,19 +77,4 @@ def check_sports():
     urls = {
         "Bet365": ("https://www.on.bet365.ca", "span.sac-ParticipantOddsOnly500__Odds"),  # ✅ Bet365 selector added
         "Stake": ("https://stake.com/sports/basketball", "div.outcome-content.svelte-12qjp05"),  # ✅ Stake selector added
-        "BetMGM": ("https://sports.on.betmgm.ca/en/sports/basketball-7", "div.option-indicator")  # ✅ BetMGM selector added
-    }
-
-    for site, (url, css_selector) in urls.items():
-        if not css_selector:
-            print(f"Skipping {site}: CSS selector missing.")
-            continue
-        
-        odds = scrape_odds(url, css_selector)
-        arbitrage, profit = calculate_arbitrage(odds)
-        if arbitrage:
-            subject = f"Arbitrage Opportunity Detected on {site}"
-            body = f"Profitable arbitrage opportunity found on {site} with profit: {profit}\n\nBookmaker link: {url}"
-            send_email(subject, body)
-
-# Main execution code was removed from here
+        "BetMGM": ("https://sports.on.betmgm.ca/en/sports/basketball-7", "div.option-indicator")  # ✅ BetMG...
