@@ -77,4 +77,17 @@ def check_sports():
     urls = {
         "Bet365": ("https://www.on.bet365.ca", "span.sac-ParticipantOddsOnly500__Odds"),  # ✅ Bet365 selector added
         "Stake": ("https://stake.com/sports/basketball", "div.outcome-content.svelte-12qjp05"),  # ✅ Stake selector added
-        "BetMGM": ("https://sports.on.betmgm.ca/en/sports/basketball-7", "div.option-indicator")  # ✅ BetMG...
+        "BetMGM": ("https://sports.on.betmgm.ca/en/sports/basketball-7", "div.option-indicator")  # ✅ BetMGM selector added
+    }  # <-- The missing closing brace for the dictionary
+
+    for site, (url, css_selector) in urls.items():
+        if not css_selector:
+            print(f"Skipping {site}: CSS selector missing.")
+            continue
+        
+        odds = scrape_odds(url, css_selector)
+        arbitrage, profit = calculate_arbitrage(odds)
+        if arbitrage:
+            subject = f"Arbitrage Opportunity Detected on {site}"
+            body = f"Profitable arbitrage opportunity found on {site} with profit: {profit}\n\nBookmaker link: {url}"
+            send_email(subject, body)
