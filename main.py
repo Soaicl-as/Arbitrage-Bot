@@ -4,7 +4,7 @@ import smtplib
 import logging
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from arbit import check_sports, send_email  # Assuming check_sports and send_email are in arbit.py
+from arbit import check_sports, send_email, send_heartbeat  # Updated import for heartbeat
 from threading import Thread
 from waitress import serve  # Production-ready server
 
@@ -66,6 +66,7 @@ def send_forever_email(subject, body):
 def run_arbitrage_bot():
     while True:
         try:
+            logging.info("Starting the arbitrage check.")
             # Check sports for arbitrage opportunities
             opportunity_found = check_sports()
 
@@ -73,8 +74,8 @@ def run_arbitrage_bot():
                 # Send email if an opportunity is found
                 send_forever_email("Arbitrage Opportunity Found", "An arbitrage opportunity has been detected!")
             
-            # Sleep for a while before checking again
-            time.sleep(30)
+            # Sleep for 2 minutes (120 seconds) before checking again
+            time.sleep(120)
 
         except Exception as e:
             logging.error(f"Error in arbitrage bot loop: {e}")
@@ -86,6 +87,10 @@ if __name__ == "__main__":
     # Start the arbitrage bot in the background
     bot_thread = Thread(target=run_arbitrage_bot, daemon=True)
     bot_thread.start()
+
+    # Start heartbeat thread to keep the bot alive
+    heartbeat_thread = Thread(target=send_heartbeat, daemon=True)
+    heartbeat_thread.start()
 
     # Run the production-ready Waitress server
     logging.info("Starting the production server with Waitress...")
