@@ -2,4 +2,4 @@ selenium==4.29.0
 beautifulsoup4==4.13.3
 requests==2.32.3
 flask==2.3.3
-webdriver-manager==4.8.2
+webdriver-manager  # Removing the specific version to fetch the latest compatible version
