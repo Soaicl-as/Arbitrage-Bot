@@ -2,6 +2,8 @@ import traceback
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 import smtplib
 from email.mime.text import MIMEText
 import time
@@ -46,8 +48,10 @@ def scrape_odds(url, css_selector):
         driver = webdriver.Chrome(options=options)
         driver.get(url)
 
-        # Wait for the page to fully load
-        time.sleep(5)
+        # Wait for the page to fully load (increased time)
+        WebDriverWait(driver, 15).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, css_selector))
+        )
 
         # Extract odds using the given CSS selector
         odds_elements = driver.find_elements(By.CSS_SELECTOR, css_selector)
@@ -75,32 +79,23 @@ def calculate_arbitrage(odds):
 # Function to check sports odds for arbitrage
 def check_sports():
     urls = {
-        "Bet365": ("https://www.on.bet365.ca", "span.sac-ParticipantOddsOnly500__Odds"),  # General sports page for all sports
-        "Stake": ("https://stake.com/sports", "div.outcome-content.svelte-12qjp05"),  # All sports page
-        "BetMGM": ("https://sports.on.betmgm.ca/en/sports", "div.option-indicator")  # All sports page
+        "Bet365": ("https://www.on.bet365.ca", "span.sac-ParticipantOddsOnly500__Odds"),  # ✅ Bet365 selector added
+        "Stake": ("https://stake.com/sports/basketball", "div.outcome-content.svelte-12qjp05"),  # ✅ Stake selector added
+        "BetMGM": ("https://sports.on.betmgm.ca/en/sports/basketball-7", "div.option-indicator")  # ✅ BetMGM selector added
     }
 
-    for site, (url, selector) in urls.items():
-        logging.info(f"Scraping {site} for arbitrage opportunities...")
+    for website, (url, selector) in urls.items():
+        logging.info(f"Scraping {website} for arbitrage opportunities...")
         odds = scrape_odds(url, selector)
         if odds:
-            logging.info(f"Odds found on {site}: {odds}")
             is_arbitrage, profit = calculate_arbitrage(odds)
             if is_arbitrage:
-                send_email(f"Arbitrage Opportunity Found on {site}", f"Profit: {profit*100:.2f}%\nOdds: {odds}")
+                logging.info(f"Arbitrage opportunity found on {website}: {odds} with profit {profit:.2%}")
+                send_email(f"Arbitrage Opportunity Found on {website}", f"Found arbitrage with {odds} and profit {profit:.2%}")
         else:
-            logging.warning(f"No odds found on {site}")
+            logging.warning(f"No odds found on {website}")
+        time.sleep(5)  # Added a small delay between requests
 
-# Run the initial test email and then continuously scrape and check for opportunities
-def main():
-    logging.info("Test email sent successfully!")
-    send_email("Test Email", "The arbitrage bot is running.")
-
-    logging.info("Starting the arbitrage check.")
-    check_sports()
-
-    logging.info("Sending heartbeat to prevent inactivity.")
-    send_heartbeat()
-
-if __name__ == "__main__":
-    main()
+# Function to test if email is working properly (will only send once)
+def send_test_email():
+    send_email("Test Email", "This is a test email to ensure that the email functionality works.")
