@@ -1,14 +1,11 @@
 import logging
-import smtplib
-import ssl
 import time
 import threading
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 from selenium import webdriver
-from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.by import By
 from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.chrome.options import Options
 
 # Email configuration
 SENDER_EMAIL = "Social.marketing638@gmail.com"
@@ -30,10 +27,10 @@ logging.basicConfig(level=logging.INFO)
 def send_email(subject, body):
     """Send email function."""
     try:
-        # Create a secure SSL context
-        context = ssl.create_default_context()
-
         # Set up the email
+        import smtplib
+        from email.mime.multipart import MIMEMultipart
+        from email.mime.text import MIMEText
         msg = MIMEMultipart()
         msg['From'] = SENDER_EMAIL
         msg['To'] = RECEIVER_EMAIL
@@ -41,7 +38,7 @@ def send_email(subject, body):
         msg.attach(MIMEText(body, "plain"))
 
         # Send the email
-        with smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT, context=context) as server:
+        with smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT) as server:
             server.login(SENDER_EMAIL, SENDER_PASSWORD)
             server.sendmail(SENDER_EMAIL, RECEIVER_EMAIL, msg.as_string())
             logging.info(f"Email sent: {subject}")
@@ -58,19 +55,15 @@ def send_test_email():
 def send_heartbeat():
     """Heartbeat function to ping Render every minute to prevent inactivity."""
     while True:
-        try:
-            logging.info("Sending heartbeat to prevent inactivity...")
-            send_email("Heartbeat", "Bot is still running.")
-            time.sleep(60)  # Wait for 1 minute
-        except Exception as e:
-            logging.error(f"Failed to send heartbeat: {e}")
+        logging.info("Heartbeat sent - keeping bot active.")
+        time.sleep(60)  # Wait for 1 minute before the next heartbeat
 
 def scrape_websites():
     """Scrape odds from the websites and check for arbitrage opportunities."""
     opportunities = []
     try:
         # Setup WebDriver
-        options = webdriver.ChromeOptions()
+        options = Options()
         options.add_argument('--headless')  # Run in headless mode
         driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
 
