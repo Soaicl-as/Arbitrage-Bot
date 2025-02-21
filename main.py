@@ -1,121 +1,158 @@
-import logging
 import time
-import threading
+import smtplib
+import logging
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from selenium import webdriver
+from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
-from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.options import Options
+import sqlite3
+import requests
+from datetime import datetime
 
-# Email configuration
-SENDER_EMAIL = "Social.marketing638@gmail.com"
-SENDER_PASSWORD = "gpsv gcwc ejts jvrn"  # Replace with your App Password
-RECEIVER_EMAIL = "Ashishsharmaa2007@gmail.com"
-
-SMTP_SERVER = "smtp.gmail.com"
-SMTP_PORT = 465  # SSL connection port
-
-# Flag to ensure test email is sent only once
-test_email_sent = False
-
-# List of websites to scrape
-WEBSITES = ["https://www.bet365.com", "https://www.stake.com", "https://www.betmgm.com"]
-
-# Initialize the logger
+# Set up logging
 logging.basicConfig(level=logging.INFO)
 
+# Email setup
+SENDER_EMAIL = "your_email@gmail.com"
+SENDER_PASSWORD = "your_email_password"
+RECEIVER_EMAIL = "your_receiver_email@gmail.com"
+
+# Set up Selenium options
+chrome_options = Options()
+chrome_options.add_argument("--headless")
+chrome_options.add_argument("--no-sandbox")
+chrome_options.add_argument("--disable-dev-shm-usage")
+
+# SQLite setup
+conn = sqlite3.connect('arbitrage.db')
+cursor = conn.cursor()
+
+# Ensure the table exists
+cursor.execute('''CREATE TABLE IF NOT EXISTS odds (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    bookmaker TEXT,
+                    sport TEXT,
+                    event TEXT,
+                    odds REAL,
+                    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)''')
+conn.commit()
+
 def send_email(subject, body):
-    """Send email function."""
     try:
-        # Set up the email
-        import smtplib
-        from email.mime.multipart import MIMEMultipart
-        from email.mime.text import MIMEText
-        msg = MIMEMultipart()
-        msg['From'] = SENDER_EMAIL
-        msg['To'] = RECEIVER_EMAIL
-        msg['Subject'] = subject
-        msg.attach(MIMEText(body, "plain"))
+        message = MIMEMultipart()
+        message["From"] = SENDER_EMAIL
+        message["To"] = RECEIVER_EMAIL
+        message["Subject"] = subject
 
-        # Send the email
-        with smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT) as server:
+        message.attach(MIMEText(body, "plain"))
+
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
             server.login(SENDER_EMAIL, SENDER_PASSWORD)
-            server.sendmail(SENDER_EMAIL, RECEIVER_EMAIL, msg.as_string())
-            logging.info(f"Email sent: {subject}")
+            server.sendmail(SENDER_EMAIL, RECEIVER_EMAIL, message.as_string())
+        logging.info("Email sent successfully.")
     except Exception as e:
-        logging.error(f"Failed to send email: {e}")
+        logging.error(f"Error sending email: {e}")
 
-def send_test_email():
-    """Send a test email when the bot first starts."""
-    global test_email_sent
-    if not test_email_sent:
-        send_email("Arbitrage Bot - Test Email", "The arbitrage bot is working!")
-        test_email_sent = True
+def heartbeat():
+    # Just print a message for the heartbeat instead of sending an email
+    print(f"Heartbeat: {datetime.now()} - The bot is still running")
 
-def send_heartbeat():
-    """Heartbeat function to ping Render every minute to prevent inactivity."""
-    while True:
-        logging.info("Heartbeat sent - keeping bot active.")
-        time.sleep(60)  # Wait for 1 minute before the next heartbeat
+def get_odds_from_bet365():
+    # Example function to scrape Bet365 odds (simplified version)
+    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
+    driver.get("https://www.bet365.com")
+    time.sleep(5)  # Wait for the page to load
 
-def scrape_websites():
-    """Scrape odds from the websites and check for arbitrage opportunities."""
-    opportunities = []
+    odds = []
+    # Example extraction of data (adjust based on the actual website structure)
     try:
-        # Setup WebDriver
-        options = Options()
-        options.add_argument('--headless')  # Run in headless mode
-        driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
-
-        for website in WEBSITES:
-            logging.info(f"Scraping website: {website}")
-            driver.get(website)
-            time.sleep(3)  # Adjust this time if needed, to let the page load
-
-            # Scrape odds - You need to adapt this logic for each website
-            odds_elements = driver.find_elements(By.CLASS_NAME, 'odds')  # Example class name for odds
-            odds = [element.text for element in odds_elements]
-            logging.info(f"Odds scraped from {website}: {odds}")
-
-            # Check for arbitrage opportunities (this is a simplified placeholder)
-            if check_arbitrage(odds):
-                opportunities.append(f"Arbitrage opportunity found on {website}. Odds: {odds}")
-
-        driver.quit()
-        return opportunities
-
+        elements = driver.find_elements(By.CSS_SELECTOR, '.market .betButton')
+        for element in elements:
+            event = element.text
+            odds.append(event)
     except Exception as e:
-        logging.error(f"Error during scraping: {e}")
-        send_email("Error in Arbitrage Bot", f"An error occurred during scraping: {e}")
-        return []
+        logging.error(f"Error scraping Bet365: {e}")
+    finally:
+        driver.quit()
+    
+    return odds
 
-def check_arbitrage(odds):
-    """Check for arbitrage opportunities from scraped odds."""
-    # Replace with actual arbitrage detection logic
-    # For example: find if the combined odds from 3 websites offer a risk-free profit
-    if len(odds) >= 3:  # Placeholder condition for arbitrage
-        return True
-    return False
+def get_odds_from_stake():
+    # Example function to scrape Stake odds (simplified version)
+    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
+    driver.get("https://www.stake.com")
+    time.sleep(5)
 
-def start_arbitrage_check():
-    """Start the arbitrage check and scrape websites every 2 minutes."""
+    odds = []
+    try:
+        elements = driver.find_elements(By.CSS_SELECTOR, '.market .betButton')
+        for element in elements:
+            event = element.text
+            odds.append(event)
+    except Exception as e:
+        logging.error(f"Error scraping Stake: {e}")
+    finally:
+        driver.quit()
+
+    return odds
+
+def get_odds_from_betmgm():
+    # Example function to scrape BetMGM odds (simplified version)
+    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
+    driver.get("https://www.betmgm.com")
+    time.sleep(5)
+
+    odds = []
+    try:
+        elements = driver.find_elements(By.CSS_SELECTOR, '.market .betButton')
+        for element in elements:
+            event = element.text
+            odds.append(event)
+    except Exception as e:
+        logging.error(f"Error scraping BetMGM: {e}")
+    finally:
+        driver.quit()
+
+    return odds
+
+def check_for_arbitrage(odds1, odds2, odds3):
+    # Placeholder for arbitrage check logic (simplified)
+    opportunities = []
+    for i, odd1 in enumerate(odds1):
+        for j, odd2 in enumerate(odds2):
+            if abs(odd1 - odd2) > 0.5:  # Arbitrary condition for opportunity
+                opportunities.append(f"Arbitrage opportunity: Bet365 vs Stake on event {i+1}")
+        for j, odd3 in enumerate(odds3):
+            if abs(odd1 - odd3) > 0.5:  # Arbitrary condition for opportunity
+                opportunities.append(f"Arbitrage opportunity: Bet365 vs BetMGM on event {i+1}")
+    return opportunities
+
+def scrape_and_check():
+    logging.info("Starting the arbitrage bot.")
+
+    odds_bet365 = get_odds_from_bet365()
+    odds_stake = get_odds_from_stake()
+    odds_betmgm = get_odds_from_betmgm()
+
+    opportunities = check_for_arbitrage(odds_bet365, odds_stake, odds_betmgm)
+
+    if opportunities:
+        body = "\n".join(opportunities)
+        send_email("Arbitrage Opportunity Found!", body)
+    else:
+        logging.info("No arbitrage opportunities found.")
+
+def main():
+    # Send a test email when the bot first runs
+    send_email("Bot is Running", "The arbitrage bot is working.")
+
     while True:
-        logging.info("Starting the arbitrage bot.")
-        send_test_email()
-        opportunities = scrape_websites()
+        scrape_and_check()
+        heartbeat()  # Heartbeat to avoid inactivity detection
+        time.sleep(120)  # Scrape every 2 minutes
 
-        if opportunities:
-            for opportunity in opportunities:
-                send_email("Arbitrage Opportunity Found", opportunity)
-        else:
-            logging.info("No arbitrage opportunities found.")
-
-        # Wait for 2 minutes before the next scrape
-        time.sleep(120)
-
-# Start the heartbeat in a separate thread to keep Render alive
-heartbeat_thread = threading.Thread(target=send_heartbeat, daemon=True)
-heartbeat_thread.start()
-
-# Start the arbitrage bot
-start_arbitrage_check()
+if __name__ == "__main__":
+    main()
