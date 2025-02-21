@@ -7,7 +7,7 @@ from email.mime.multipart import MIMEMultipart
 
 # Your Gmail credentials
 SENDER_EMAIL = "youremail@gmail.com"
-SENDER_PASSWORD = "yourpassword"  # Replace with your actual Gmail password or app password
+SENDER_PASSWORD = "your-app-password"  # Replace with the App Password generated from Google
 RECEIVER_EMAIL = "receiveremail@gmail.com"
 
 SMTP_SERVER = "smtp.gmail.com"
