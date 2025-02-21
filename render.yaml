@@ -1,0 +1,6 @@
+services:
+  - type: worker  # Specify 'worker' type
+    name: arbitrage-bot  # Name your service
+    env: python  # Define the environment as Python
+    buildCommand: "poetry install --only main"  # Install dependencies (without dev dependencies)
+    startCommand: "python main.py"  # Command to start the bot
