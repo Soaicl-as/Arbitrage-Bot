@@ -1,48 +1,37 @@
 import logging
-from arbit import check_sports, send_email, send_heartbeat, send_test_email
 import time
-import sys
+from email_utils import send_email  # Import the email-sending function from email_utils.py
 
-# Logging setup
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
-
-# Send test email only once (skip after first run)
-def send_initial_test_email():
-    # Check if this is the first run and send the test email
+def run_arbitrage_check():
     try:
-        with open("first_run.txt", "r") as f:
-            first_run = f.read()
-    except FileNotFoundError:
-        first_run = "True"
-
-    if first_run == "True":
-        send_test_email()
-        with open("first_run.txt", "w") as f:
-            f.write("False")
-            logging.info("Test email sent successfully!")
-    else:
-        logging.info("Test email has already been sent.")
-
-def main():
-    # Send test email on the first run
-    send_initial_test_email()
-
-    # Start heartbeat thread
-    import threading
-    heartbeat_thread = threading.Thread(target=send_heartbeat)
-    heartbeat_thread.daemon = True
-    heartbeat_thread.start()
-
-    # Start the arbitrage check in a loop
-    while True:
+        # Start scraping for arbitrage opportunities
         logging.info("Starting the arbitrage check.")
-        check_sports()
-        time.sleep(60)  # Wait a minute before checking again
+
+        # Your scraping logic (this is a placeholder, you should insert your scraping code here)
+        found_opportunity = False  # You would replace this with the actual logic
+
+        if found_opportunity:
+            logging.info("Arbitrage opportunity found! Sending email.")
+            send_email(subject="Arbitrage Opportunity Found", body="Details of the opportunity...")
+
+        else:
+            logging.warning("No arbitrage opportunity found.")
+
+    except Exception as e:
+        logging.error(f"Error during arbitrage check: {e}")
+        send_email(subject="Error during arbitrage check", body=f"An error occurred: {e}")
+
+def send_heartbeat():
+    logging.info("Sending heartbeat to prevent inactivity.")
 
 if __name__ == "__main__":
-    try:
-        main()
-    except Exception as e:
-        logging.error(f"Error occurred: {e}")
-        send_email("Arbitrage Bot Error", f"An error occurred: {e}")
-        sys.exit(1)
+    logging.basicConfig(level=logging.INFO)
+
+    # Send the test email only once at the first run
+    send_email(subject="Test Email", body="This is a test email to ensure everything is working.")
+
+    # Main loop for scraping
+    while True:
+        run_arbitrage_check()
+        send_heartbeat()
+        time.sleep(60)  # Sleep for a minute before checking again
