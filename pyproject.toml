@@ -1,16 +1,20 @@
 [tool.poetry]
 name = "arbitrage-bot"
 version = "0.1.0"
-description = "A sports arbitrage betting bot"
-authors = ["John Smith <Social.marketing638@gmail.com>"]
+description = "A bot to detect and alert arbitrage betting opportunities"
+authors = ["Your Name <your.email@example.com>"]
+license = "MIT"
 
 [tool.poetry.dependencies]
 python = "^3.11"
-selenium = "^4.5.0"
-requests = "^2.26.0"
-beautifulsoup4 = "^4.10.0"
+flask = "^2.2.2"  # Added Flask dependency
+beautifulsoup4 = "^4.13.3"
+requests = "^2.32.3"
+selenium = "^4.29.0"
+# Add any other necessary dependencies here
 
 [tool.poetry.dev-dependencies]
+# You can add development dependencies here, such as testing libraries
 pytest = "^7.0"
 
 [build-system]
