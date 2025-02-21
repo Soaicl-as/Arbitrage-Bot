@@ -47,7 +47,7 @@ def scrape_odds(url, css_selector):
         driver.get(url)
 
         # Wait for the page to fully load
-        time.sleep(5)  
+        time.sleep(5)
 
         # Extract odds using the given CSS selector
         odds_elements = driver.find_elements(By.CSS_SELECTOR, css_selector)
@@ -75,19 +75,32 @@ def calculate_arbitrage(odds):
 # Function to check sports odds for arbitrage
 def check_sports():
     urls = {
-        "Bet365": ("https://www.on.bet365.ca", "span.sac-ParticipantOddsOnly500__Odds"),  # ✅ Bet365 selector added
-        "Stake": ("https://stake.com/sports/basketball", "div.outcome-content.svelte-12qjp05"),  # ✅ Stake selector added
-        "BetMGM": ("https://sports.on.betmgm.ca/en/sports/basketball-7", "div.option-indicator")  # ✅ BetMGM selector added
-    }  # <-- The missing closing brace for the dictionary
+        "Bet365": ("https://www.on.bet365.ca", "span.sac-ParticipantOddsOnly500__Odds"),  # General sports page for all sports
+        "Stake": ("https://stake.com/sports", "div.outcome-content.svelte-12qjp05"),  # All sports page
+        "BetMGM": ("https://sports.on.betmgm.ca/en/sports", "div.option-indicator")  # All sports page
+    }
 
-    for site, (url, css_selector) in urls.items():
-        if not css_selector:
-            print(f"Skipping {site}: CSS selector missing.")
-            continue
-        
-        odds = scrape_odds(url, css_selector)
-        arbitrage, profit = calculate_arbitrage(odds)
-        if arbitrage:
-            subject = f"Arbitrage Opportunity Detected on {site}"
-            body = f"Profitable arbitrage opportunity found on {site} with profit: {profit}\n\nBookmaker link: {url}"
-            send_email(subject, body)
+    for site, (url, selector) in urls.items():
+        logging.info(f"Scraping {site} for arbitrage opportunities...")
+        odds = scrape_odds(url, selector)
+        if odds:
+            logging.info(f"Odds found on {site}: {odds}")
+            is_arbitrage, profit = calculate_arbitrage(odds)
+            if is_arbitrage:
+                send_email(f"Arbitrage Opportunity Found on {site}", f"Profit: {profit*100:.2f}%\nOdds: {odds}")
+        else:
+            logging.warning(f"No odds found on {site}")
+
+# Run the initial test email and then continuously scrape and check for opportunities
+def main():
+    logging.info("Test email sent successfully!")
+    send_email("Test Email", "The arbitrage bot is running.")
+
+    logging.info("Starting the arbitrage check.")
+    check_sports()
+
+    logging.info("Sending heartbeat to prevent inactivity.")
+    send_heartbeat()
+
+if __name__ == "__main__":
+    main()
