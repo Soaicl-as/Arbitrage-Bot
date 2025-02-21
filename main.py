@@ -1,97 +1,48 @@
-from flask import Flask
-import time
-import smtplib
 import logging
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-from arbit import check_sports, send_email, send_heartbeat  # Updated import for heartbeat
-from threading import Thread
-from waitress import serve  # Production-ready server
+from arbit import check_sports, send_email, send_heartbeat, send_test_email
+import time
+import sys
 
-app = Flask(__name__)
-
-# Email configurations
-SENDER_EMAIL = "Social.marketing638@gmail.com"
-SENDER_PASSWORD = "qqgx lluj wqmr rhgz"
-RECEIVER_EMAIL = "Ashishsharmaa2007@gmail.com"
-SMTP_SERVER = "smtp.gmail.com"
-SMTP_PORT = 587
-
-# Setup logging
+# Logging setup
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
-# Function to send a test email to confirm email setup
-def send_test_email():
-    subject = "Test Email"
-    body = "This is a test email to confirm the bot is working."
-
-    msg = MIMEMultipart()
-    msg['From'] = SENDER_EMAIL
-    msg['To'] = RECEIVER_EMAIL
-    msg['Subject'] = subject
-    msg.attach(MIMEText(body, 'plain'))
-
+# Send test email only once (skip after first run)
+def send_initial_test_email():
+    # Check if this is the first run and send the test email
     try:
-        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
-            server.starttls()
-            server.login(SENDER_EMAIL, SENDER_PASSWORD)
-            server.sendmail(SENDER_EMAIL, RECEIVER_EMAIL, msg.as_string())
+        with open("first_run.txt", "r") as f:
+            first_run = f.read()
+    except FileNotFoundError:
+        first_run = "True"
+
+    if first_run == "True":
+        send_test_email()
+        with open("first_run.txt", "w") as f:
+            f.write("False")
             logging.info("Test email sent successfully!")
-    except Exception as e:
-        logging.error(f"Failed to send test email: {e}")
+    else:
+        logging.info("Test email has already been sent.")
 
-# This route will confirm the server is up
-@app.route("/")
-def home():
-    return "Arbitrage Bot is running!"
+def main():
+    # Send test email on the first run
+    send_initial_test_email()
 
-# Send an opportunity found email
-def send_forever_email(subject, body):
-    msg = MIMEMultipart()
-    msg['From'] = SENDER_EMAIL
-    msg['To'] = RECEIVER_EMAIL
-    msg['Subject'] = subject
-    msg.attach(MIMEText(body, 'plain'))
-
-    try:
-        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
-            server.starttls()
-            server.login(SENDER_EMAIL, SENDER_PASSWORD)
-            server.sendmail(SENDER_EMAIL, RECEIVER_EMAIL, msg.as_string())
-            logging.info("Opportunity email sent successfully!")
-    except Exception as e:
-        logging.error(f"Failed to send opportunity email: {e}")
-
-# Main loop for the arbitrage bot
-def run_arbitrage_bot():
-    while True:
-        try:
-            logging.info("Starting the arbitrage check.")
-            # Check sports for arbitrage opportunities
-            opportunity_found = check_sports()
-
-            if opportunity_found:
-                # Send email if an opportunity is found
-                send_forever_email("Arbitrage Opportunity Found", "An arbitrage opportunity has been detected!")
-            
-            # Sleep for 2 minutes (120 seconds) before checking again
-            time.sleep(120)
-
-        except Exception as e:
-            logging.error(f"Error in arbitrage bot loop: {e}")
-
-if __name__ == "__main__":
-    # Send a test email on start-up to confirm the bot is functional
-    send_test_email()
-
-    # Start the arbitrage bot in the background
-    bot_thread = Thread(target=run_arbitrage_bot, daemon=True)
-    bot_thread.start()
-
-    # Start heartbeat thread to keep the bot alive
-    heartbeat_thread = Thread(target=send_heartbeat, daemon=True)
+    # Start heartbeat thread
+    import threading
+    heartbeat_thread = threading.Thread(target=send_heartbeat)
+    heartbeat_thread.daemon = True
     heartbeat_thread.start()
 
-    # Run the production-ready Waitress server
-    logging.info("Starting the production server with Waitress...")
-    serve(app, host="0.0.0.0", port=8000)
+    # Start the arbitrage check in a loop
+    while True:
+        logging.info("Starting the arbitrage check.")
+        check_sports()
+        time.sleep(60)  # Wait a minute before checking again
+
+if __name__ == "__main__":
+    try:
+        main()
+    except Exception as e:
+        logging.error(f"Error occurred: {e}")
+        send_email("Arbitrage Bot Error", f"An error occurred: {e}")
+        sys.exit(1)
