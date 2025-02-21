@@ -8,7 +8,7 @@ import time
 
 # Email credentials
 SENDER_EMAIL = "social.marketing638@gmail.com"
-SENDER_PASSWORD = "vojsif-bujxuw-jynTu6"
+SENDER_PASSWORD = "qqgx lluj wqmr rhgz"
 RECEIVER_EMAIL = "Ashishsharmaa2007@gmail.com"
 
 # Function to send email notifications
