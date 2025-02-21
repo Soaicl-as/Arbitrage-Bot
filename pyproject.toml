@@ -7,14 +7,13 @@ license = "MIT"
 
 [tool.poetry.dependencies]
 python = "^3.11"
-flask = "^2.2.2"  # Added Flask dependency
+flask = "^2.2.2"
 beautifulsoup4 = "^4.13.3"
 requests = "^2.32.3"
 selenium = "^4.29.0"
-# Add any other necessary dependencies here
+waitress = "^3.0.0"  # Added waitress for production WSGI server
 
 [tool.poetry.dev-dependencies]
-# You can add development dependencies here, such as testing libraries
 pytest = "^7.0"
 
 [build-system]
