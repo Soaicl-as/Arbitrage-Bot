@@ -30,7 +30,7 @@ apt-get install -y \
 pip install --upgrade pip
 
 # Check if Selenium is installed
-pip show selenium
+pip freeze | grep selenium
 
 # Install selenium explicitly to avoid any issues
 pip install selenium==4.29.0
