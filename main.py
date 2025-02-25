@@ -8,6 +8,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 import logging
+import sys
 
 # Logging configuration
 logging.basicConfig(level=logging.INFO)
@@ -20,15 +21,23 @@ RECEIVER_EMAIL = "Ashishsharmaa2007@gmail.com"
 # Configure Selenium WebDriver
 def create_driver():
     chrome_options = Options()
-    chrome_options.binary_location = "/usr/bin/google-chrome"  # Set Chrome binary path
+    
+    # Ensure the Chrome binary path is correct
+    chrome_options.binary_location = "/usr/bin/google-chrome"  # Ensure this is the correct path for Render
+    
     chrome_options.add_argument("--headless")  # Run in headless mode
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
 
-    # Set up WebDriver using ChromeDriverManager
-    service = Service(ChromeDriverManager().install())
-    driver = webdriver.Chrome(service=service, options=chrome_options)
-    return driver
+    try:
+        # Set up WebDriver using ChromeDriverManager
+        service = Service(ChromeDriverManager().install())
+        driver = webdriver.Chrome(service=service, options=chrome_options)
+        logging.info("WebDriver successfully created.")
+        return driver
+    except Exception as e:
+        logging.error(f"Error creating WebDriver: {e}")
+        sys.exit(1)
 
 # Function to send email notifications
 def send_email(subject, body):
@@ -49,11 +58,16 @@ def send_email(subject, body):
 
 # Web scraping functions
 def get_odds(driver, url, selector):
-    driver.get(url)
-    time.sleep(3)  # Adjust timing as necessary
-    odds_elements = driver.find_elements(By.CSS_SELECTOR, selector)
-    odds = [elem.text for elem in odds_elements if elem.text]
-    return odds
+    try:
+        driver.get(url)
+        time.sleep(3)  # Adjust timing as necessary
+        odds_elements = driver.find_elements(By.CSS_SELECTOR, selector)
+        odds = [elem.text for elem in odds_elements if elem.text]
+        logging.info(f"Scraped odds: {odds}")
+        return odds
+    except Exception as e:
+        logging.error(f"Error scraping {url}: {e}")
+        return []
 
 # Scrape odds from Bet365, Stake, and BetMGM
 def get_odds_from_bet365(driver):
