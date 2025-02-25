@@ -17,15 +17,17 @@ SENDER_EMAIL = "social.marketing638@gmail.com"
 SENDER_PASSWORD = "sbhb wscc dbua qsho"  # App password for Gmail
 RECEIVER_EMAIL = "Ashishsharmaa2007@gmail.com"
 
-# Web scraping setup - configure Selenium options for headless browsing
+# Configure Selenium WebDriver
 def create_driver():
     chrome_options = Options()
-    chrome_options.add_argument("--headless")
+    chrome_options.binary_location = "/usr/bin/google-chrome"  # Set Chrome binary path
+    chrome_options.add_argument("--headless")  # Run in headless mode
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
-    
-    # Driver setup using webdriver_manager to avoid version issues
-    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
+
+    # Set up WebDriver using ChromeDriverManager
+    service = Service(ChromeDriverManager().install())
+    driver = webdriver.Chrome(service=service, options=chrome_options)
     return driver
 
 # Function to send email notifications
@@ -39,88 +41,76 @@ def send_email(subject, body):
     try:
         server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
         server.login(SENDER_EMAIL, SENDER_PASSWORD)
-        text = msg.as_string()
-        server.sendmail(SENDER_EMAIL, RECEIVER_EMAIL, text)
+        server.sendmail(SENDER_EMAIL, RECEIVER_EMAIL, msg.as_string())
         server.quit()
         logging.info("Email sent successfully.")
     except Exception as e:
         logging.error(f"Failed to send email: {e}")
 
-# Scraping odds from Bet365, Stake, BetMGM using provided selectors
-def get_odds_from_bet365(driver):
-    driver.get("https://www.bet365.com/")
+# Web scraping functions
+def get_odds(driver, url, selector):
+    driver.get(url)
     time.sleep(3)  # Adjust timing as necessary
-    
-    # Use the provided selector to extract odds from Bet365
-    odds_elements = driver.find_elements(By.CSS_SELECTOR, "span.sac-ParticipantOddsOnly500__Odds")
-    odds = [elem.text for elem in odds_elements]
-    logging.info(f"Scraped odds from Bet365: {odds}")
+    odds_elements = driver.find_elements(By.CSS_SELECTOR, selector)
+    odds = [elem.text for elem in odds_elements if elem.text]
     return odds
+
+# Scrape odds from Bet365, Stake, and BetMGM
+def get_odds_from_bet365(driver):
+    return get_odds(driver, "https://www.bet365.com/", "span.sac-ParticipantOddsOnly500__Odds")
 
 def get_odds_from_stake(driver):
-    driver.get("https://www.stake.com/")
-    time.sleep(3)  # Adjust timing as necessary
-    
-    # Use the provided selector to extract odds from Stake
-    odds_elements = driver.find_elements(By.CSS_SELECTOR, "div.outcome-content.svelte-12qjp05")
-    odds = [elem.text for elem in odds_elements]
-    logging.info(f"Scraped odds from Stake: {odds}")
-    return odds
+    return get_odds(driver, "https://www.stake.com/", "div.outcome-content.svelte-12qjp05")
 
 def get_odds_from_betmgm(driver):
-    driver.get("https://www.betmgm.com/")
-    time.sleep(3)  # Adjust timing as necessary
-    
-    # Use the provided selector to extract odds from BetMGM
-    odds_elements = driver.find_elements(By.CSS_SELECTOR, "div.option-indicator")
-    odds = [elem.text for elem in odds_elements]
-    logging.info(f"Scraped odds from BetMGM: {odds}")
-    return odds
+    return get_odds(driver, "https://www.betmgm.com/", "div.option-indicator")
 
 # Function to check for arbitrage opportunities
 def check_arbitrage(odds1, odds2, odds3):
-    # Placeholder logic for arbitrage check, should be replaced with real calculations
-    # Assuming odds1, odds2, and odds3 are lists of odds from the 3 bookmakers
-    # This is a basic example of comparing odds
     opportunities = []
-    for o1 in odds1:
-        for o2 in odds2:
-            for o3 in odds3:
-                # Arbitrage condition - simple example
-                if (o1 < o2 and o1 < o3):
-                    opportunities.append(f"Arbitrage opportunity: {o1} from Bet365, {o2} from Stake, {o3} from BetMGM.")
+    try:
+        for o1 in odds1:
+            for o2 in odds2:
+                for o3 in odds3:
+                    try:
+                        # Convert to float before comparison
+                        o1, o2, o3 = float(o1), float(o2), float(o3)
+
+                        # Arbitrage condition (example logic, replace with real calculations)
+                        if o1 < o2 and o1 < o3:
+                            opportunities.append(f"Arbitrage opportunity: {o1} from Bet365, {o2} from Stake, {o3} from BetMGM.")
+
+                    except ValueError:
+                        continue  # Skip invalid odds
+
+    except Exception as e:
+        logging.error(f"Error in arbitrage calculation: {e}")
+
     if opportunities:
         send_email("Arbitrage Opportunity Found!", "\n".join(opportunities))
     else:
         logging.info("No arbitrage opportunity found.")
 
-# Heartbeat function to prevent Render from labeling the bot as inactive
+# Keep the bot active
 def heartbeat():
     logging.info("Heartbeat - Bot is running.")
-    time.sleep(60)  # Sleep for 1 minute before next ping
+    time.sleep(60)  # Sleep for 1 minute
 
-# Main function to scrape the odds and check for arbitrage
+# Main function
 def main():
-    # Send a test email the first time the bot runs
     send_email("Arbitrage Bot is Running!", "The bot is now running and scraping odds.")
-
-    # Initialize the Selenium WebDriver
+    
     driver = create_driver()
 
     while True:
         try:
-            # Scrape odds from the 3 websites
             bet365_odds = get_odds_from_bet365(driver)
             stake_odds = get_odds_from_stake(driver)
             betmgm_odds = get_odds_from_betmgm(driver)
 
-            # Check for arbitrage opportunities
             check_arbitrage(bet365_odds, stake_odds, betmgm_odds)
 
-            # Wait for 2 minutes before scraping again
-            time.sleep(120)
-            
-            # Send heartbeat every minute to keep the bot active
+            time.sleep(120)  # Wait 2 minutes
             heartbeat()
 
         except Exception as e:
