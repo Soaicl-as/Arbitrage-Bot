@@ -1,4 +1,8 @@
 import traceback
+import os
+import time
+import logging
+import threading
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
@@ -6,18 +10,24 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import smtplib
 from email.mime.text import MIMEText
-import time
-import logging
+import schedule
 
-# Email configurations
-SENDER_EMAIL = "Social.marketing638@gmail.com"
-SENDER_PASSWORD = "qqgx lluj wqmr rhgz"
-RECEIVER_EMAIL = "Ashishsharmaa2007@gmail.com"
-SMTP_SERVER = "smtp.gmail.com"
-SMTP_PORT = 587
+# Load environment variables for sensitive data
+SENDER_EMAIL = os.getenv("SENDER_EMAIL", "Social.marketing638@gmail.com")
+SENDER_PASSWORD = os.getenv("SENDER_PASSWORD", "qqgx lluj wqmr rhgz")
+RECEIVER_EMAIL = os.getenv("RECEIVER_EMAIL", "Ashishsharmaa2007@gmail.com")
+SMTP_SERVER = os.getenv("SMTP_SERVER", "smtp.gmail.com")
+SMTP_PORT = int(os.getenv("SMTP_PORT", 587))
 
 # Setup logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    handlers=[logging.FileHandler("arbitrage_bot.log"), logging.StreamHandler()],
+)
+
+# Global variable to track if the test email has been sent
+test_email_sent = False
 
 # Heartbeat function to keep Render from marking the bot as inactive
 def send_heartbeat():
@@ -33,7 +43,8 @@ def send_email(subject, body):
     msg['To'] = RECEIVER_EMAIL
 
     try:
-        with smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT) as server:
+        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+            server.starttls()
             server.login(SENDER_EMAIL, SENDER_PASSWORD)
             server.sendmail(SENDER_EMAIL, RECEIVER_EMAIL, msg.as_string())
             logging.info(f"Email sent: {subject}")
@@ -45,6 +56,9 @@ def scrape_odds(url, css_selector):
     try:
         options = Options()
         options.add_argument("--headless")
+        options.add_argument("--disable-gpu")
+        options.add_argument("--no-sandbox")
+        options.add_argument("--disable-dev-shm-usage")
         driver = webdriver.Chrome(options=options)
         driver.get(url)
 
@@ -98,4 +112,27 @@ def check_sports():
 
 # Function to test if email is working properly (will only send once)
 def send_test_email():
-    send_email("Test Email", "This is a test email to ensure that the email functionality works.")
+    global test_email_sent
+    if not test_email_sent:
+        send_email("Test Email", "This is a test email to ensure that the email functionality works.")
+        test_email_sent = True
+
+# Main function to run the bot
+def main():
+    # Start heartbeat in a separate thread
+    heartbeat_thread = threading.Thread(target=send_heartbeat, daemon=True)
+    heartbeat_thread.start()
+
+    # Send a test email on startup
+    send_test_email()
+
+    # Schedule the sports check to run every minute
+    schedule.every(1).minutes.do(check_sports)
+
+    # Run the scheduler
+    while True:
+        schedule.run_pending()
+        time.sleep(1)
+
+if __name__ == "__main__":
+    main()
