@@ -1,21 +1,19 @@
 services:
-  - type: worker  # Worker service to avoid needing a port
-    name: arbitrage-bot  # Service name
-    env: python  # Python environment
-    buildCommand: "poetry install --no-root"  # Install all dependencies
-    startCommand: "poetry run python main.py"  # Run the bot in the Poetry environment
+  - type: worker
+    name: arbitrage-bot
+    env: python
+    buildCommand: "poetry install --no-root"
+    startCommand: "./start.sh"
     envVars:
       - key: HEARTBEAT_INTERVAL
-        value: "60"  # Set heartbeat interval (1 minute)
+        value: "60"
       - key: SENDER_EMAIL
-        value: "social.marketing638@gmail.com"  # Replace with your email
+        value: "social.marketing638@gmail.com"
       - key: SENDER_PASSWORD
-        value: "sbhb wscc dbua qsho"  # Replace with your app password
+        value: "sbhb wscc dbua qsho"
       - key: RECEIVER_EMAIL
-        value: "Ashishsharmaa2007@gmail.com"  # Replace with the receiver's email
+        value: "Ashishsharmaa2007@gmail.com"
       - key: SMTP_SERVER
-        value: "smtp.gmail.com"  # SMTP server for email
+        value: "smtp.gmail.com"
       - key: SMTP_PORT
-        value: "465"  # SMTP port for email
-    healthCheckPath: /  # Optional: Add a health check endpoint if applicable
-    plan: free  # Use the free plan for development
+        value: "465"
