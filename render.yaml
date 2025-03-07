@@ -1,5 +1,5 @@
 services:
-  - type: worker
+  - type: worker  # Explicitly set the service type to worker
     name: arbitrage-bot
     env: python
     buildCommand: "./build.sh"
