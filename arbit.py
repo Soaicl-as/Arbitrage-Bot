@@ -10,14 +10,13 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import smtplib
 from email.mime.text import MIMEText
-import schedule
 
 # Load environment variables for sensitive data
-SENDER_EMAIL = os.getenv("SENDER_EMAIL", "Social.marketing638@gmail.com")
-SENDER_PASSWORD = os.getenv("SENDER_PASSWORD", "qqgx lluj wqmr rhgz")
+SENDER_EMAIL = os.getenv("SENDER_EMAIL", "social.marketing638@gmail.com")
+SENDER_PASSWORD = os.getenv("SENDER_PASSWORD", "sbhb wscc dbua qsho")
 RECEIVER_EMAIL = os.getenv("RECEIVER_EMAIL", "Ashishsharmaa2007@gmail.com")
 SMTP_SERVER = os.getenv("SMTP_SERVER", "smtp.gmail.com")
-SMTP_PORT = int(os.getenv("SMTP_PORT", 587))
+SMTP_PORT = int(os.getenv("SMTP_PORT", 465))
 
 # Setup logging
 logging.basicConfig(
@@ -43,8 +42,7 @@ def send_email(subject, body):
     msg['To'] = RECEIVER_EMAIL
 
     try:
-        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
-            server.starttls()
+        with smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT) as server:
             server.login(SENDER_EMAIL, SENDER_PASSWORD)
             server.sendmail(SENDER_EMAIL, RECEIVER_EMAIL, msg.as_string())
             logging.info(f"Email sent: {subject}")
@@ -127,12 +125,9 @@ def main():
     send_test_email()
 
     # Schedule the sports check to run every minute
-    schedule.every(1).minutes.do(check_sports)
-
-    # Run the scheduler
     while True:
-        schedule.run_pending()
-        time.sleep(1)
+        check_sports()
+        time.sleep(60)  # Wait 1 minute before the next check
 
 if __name__ == "__main__":
     main()
