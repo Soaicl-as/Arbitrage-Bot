@@ -1,37 +1,38 @@
 import time
 import smtplib
+import logging
+import os
+import threading
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
-import logging
-import sys
+
+# Load environment variables for sensitive data
+SENDER_EMAIL = os.getenv("SENDER_EMAIL", "social.marketing638@gmail.com")
+SENDER_PASSWORD = os.getenv("SENDER_PASSWORD", "sbhb wscc dbua qsho")  # App password for Gmail
+RECEIVER_EMAIL = os.getenv("RECEIVER_EMAIL", "Ashishsharmaa2007@gmail.com")
 
 # Logging configuration
-logging.basicConfig(level=logging.INFO)
-
-# Set up email credentials
-SENDER_EMAIL = "social.marketing638@gmail.com"
-SENDER_PASSWORD = "sbhb wscc dbua qsho"  # App password for Gmail
-RECEIVER_EMAIL = "Ashishsharmaa2007@gmail.com"
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    handlers=[logging.FileHandler("arbitrage_bot.log"), logging.StreamHandler()],
+)
 
 # Configure Selenium WebDriver
 def create_driver():
     chrome_options = Options()
-    
-    # Ensure the Chrome binary path is correct
     chrome_options.binary_location = "/usr/bin/google-chrome"  # Ensure this is the correct path for Render
-    
     chrome_options.add_argument("--headless")  # Run in headless mode
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
 
     try:
-        # Set up WebDriver using ChromeDriverManager
-        service = Service(ChromeDriverManager().install())
+        # Use pre-installed ChromeDriver
+        service = Service("/usr/local/bin/chromedriver")
         driver = webdriver.Chrome(service=service, options=chrome_options)
         logging.info("WebDriver successfully created.")
         return driver
@@ -46,7 +47,7 @@ def send_email(subject, body):
     msg['To'] = RECEIVER_EMAIL
     msg['Subject'] = subject
     msg.attach(MIMEText(body, 'plain'))
-    
+
     try:
         server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
         server.login(SENDER_EMAIL, SENDER_PASSWORD)
@@ -90,9 +91,10 @@ def check_arbitrage(odds1, odds2, odds3):
                         # Convert to float before comparison
                         o1, o2, o3 = float(o1), float(o2), float(o3)
 
-                        # Arbitrage condition (example logic, replace with real calculations)
-                        if o1 < o2 and o1 < o3:
-                            opportunities.append(f"Arbitrage opportunity: {o1} from Bet365, {o2} from Stake, {o3} from BetMGM.")
+                        # Calculate arbitrage profit
+                        profit = (1 / o1) + (1 / o2) + (1 / o3)
+                        if profit < 1:
+                            opportunities.append(f"Arbitrage opportunity: {o1} from Bet365, {o2} from Stake, {o3} from BetMGM. Profit: {1 - profit:.2%}")
 
                     except ValueError:
                         continue  # Skip invalid odds
@@ -107,13 +109,18 @@ def check_arbitrage(odds1, odds2, odds3):
 
 # Keep the bot active
 def heartbeat():
-    logging.info("Heartbeat - Bot is running.")
-    time.sleep(60)  # Sleep for 1 minute
+    while True:
+        logging.info("Heartbeat - Bot is running.")
+        time.sleep(60)  # Sleep for 1 minute
 
 # Main function
 def main():
     send_email("Arbitrage Bot is Running!", "The bot is now running and scraping odds.")
-    
+
+    # Start heartbeat in a separate thread
+    heartbeat_thread = threading.Thread(target=heartbeat, daemon=True)
+    heartbeat_thread.start()
+
     driver = create_driver()
 
     while True:
@@ -125,7 +132,6 @@ def main():
             check_arbitrage(bet365_odds, stake_odds, betmgm_odds)
 
             time.sleep(120)  # Wait 2 minutes
-            heartbeat()
 
         except Exception as e:
             logging.error(f"Error occurred: {e}")
