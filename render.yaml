@@ -2,7 +2,7 @@ services:
   - type: worker
     name: arbitrage-bot
     env: python
-    buildCommand: "poetry install --no-root"
+    buildCommand: "./build.sh"
     startCommand: "./start.sh"
     envVars:
       - key: HEARTBEAT_INTERVAL
