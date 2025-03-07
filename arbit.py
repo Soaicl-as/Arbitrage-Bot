@@ -50,26 +50,13 @@ def send_email(subject, body):
         logging.error(f"Failed to send email: {e}")
 
 # Function to scrape odds with error handling
-def scrape_odds(url, css_selector):
+def scrape_odds(driver, url, selector):
     try:
-        options = Options()
-        options.add_argument("--headless")
-        options.add_argument("--disable-gpu")
-        options.add_argument("--no-sandbox")
-        options.add_argument("--disable-dev-shm-usage")
-        driver = webdriver.Chrome(options=options)
         driver.get(url)
-
-        # Wait for the page to fully load (increased time)
-        WebDriverWait(driver, 15).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, css_selector))
-        )
-
-        # Extract odds using the given CSS selector
-        odds_elements = driver.find_elements(By.CSS_SELECTOR, css_selector)
+        time.sleep(5)  # Wait for the page to load
+        odds_elements = driver.find_elements(By.CSS_SELECTOR, selector)
         odds = [e.text for e in odds_elements if e.text.strip()]
-
-        driver.quit()
+        logging.info(f"Scraped odds from {url}: {odds}")
         return odds
     except Exception as e:
         error_message = f"Error scraping {url}: {str(e)}\n{traceback.format_exc()}"
@@ -77,11 +64,18 @@ def scrape_odds(url, css_selector):
         return []
 
 # Function to calculate arbitrage
-def calculate_arbitrage(odds):
+def calculate_arbitrage(odds1, odds2, odds3):
     try:
-        if len(odds) < 2:
+        if len(odds1) < 2 or len(odds2) < 2 or len(odds3) < 2:
             return False, None
-        profit = 1.0 / float(odds[0]) + 1.0 / float(odds[1])
+
+        # Convert odds to floats
+        odds1 = [float(o) for o in odds1]
+        odds2 = [float(o) for o in odds2]
+        odds3 = [float(o) for o in odds3]
+
+        # Calculate arbitrage profit
+        profit = (1 / odds1[0]) + (1 / odds2[1]) + (1 / odds3[2])
         return profit < 1, profit
     except Exception as e:
         error_message = f"Error calculating arbitrage: {str(e)}\n{traceback.format_exc()}"
@@ -91,22 +85,32 @@ def calculate_arbitrage(odds):
 # Function to check sports odds for arbitrage
 def check_sports():
     urls = {
-        "Bet365": ("https://www.on.bet365.ca", "span.sac-ParticipantOddsOnly500__Odds"),  # ✅ Bet365 selector added
-        "Stake": ("https://stake.com/sports/basketball", "div.outcome-content.svelte-12qjp05"),  # ✅ Stake selector added
-        "BetMGM": ("https://sports.on.betmgm.ca/en/sports/basketball-7", "div.option-indicator")  # ✅ BetMGM selector added
+        "Bet365": ("https://www.on.bet365.ca", "span.sac-ParticipantOddsOnly500__Odds"),
+        "Stake": ("https://stake.com/sports", "div.outcome-content.svelte-12qjp05"),
+        "BetMGM": ("https://sports.on.betmgm.ca/en/sports", "div.option-indicator")
     }
 
-    for website, (url, selector) in urls.items():
-        logging.info(f"Scraping {website} for arbitrage opportunities...")
-        odds = scrape_odds(url, selector)
-        if odds:
-            is_arbitrage, profit = calculate_arbitrage(odds)
-            if is_arbitrage:
-                logging.info(f"Arbitrage opportunity found on {website}: {odds} with profit {profit:.2%}")
-                send_email(f"Arbitrage Opportunity Found on {website}", f"Found arbitrage with {odds} and profit {profit:.2%}")
-        else:
-            logging.warning(f"No odds found on {website}")
-        time.sleep(5)  # Added a small delay between requests
+    # Initialize Selenium WebDriver
+    options = Options()
+    options.add_argument("--headless")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+    driver = webdriver.Chrome(options=options)
+
+    try:
+        for website, (url, selector) in urls.items():
+            logging.info(f"Scraping {website} for arbitrage opportunities...")
+            odds = scrape_odds(driver, url, selector)
+            if odds:
+                is_arbitrage, profit = calculate_arbitrage(odds, odds, odds)  # Placeholder logic
+                if is_arbitrage:
+                    logging.info(f"Arbitrage opportunity found on {website}: {odds} with profit {1 - profit:.2%}")
+                    send_email(f"Arbitrage Opportunity Found on {website}", f"Found arbitrage with {odds} and profit {1 - profit:.2%}")
+            else:
+                logging.warning(f"No odds found on {website}")
+            time.sleep(5)  # Add a small delay between requests
+    finally:
+        driver.quit()
 
 # Function to test if email is working properly (will only send once)
 def send_test_email():
@@ -124,7 +128,7 @@ def main():
     # Send a test email on startup
     send_test_email()
 
-    # Schedule the sports check to run every minute
+    # Run the sports check every minute
     while True:
         check_sports()
         time.sleep(60)  # Wait 1 minute before the next check
