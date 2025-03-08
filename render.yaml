@@ -3,7 +3,7 @@ services:
     name: arbitrage-bot
     env: python
     buildCommand: "./build.sh"
-    startCommand: "./start.sh"
+    startCommand: "./start.sh"  # Use the start script
     envVars:
       - key: HEARTBEAT_INTERVAL
         value: "60"
