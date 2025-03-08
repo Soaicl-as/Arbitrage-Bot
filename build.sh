@@ -59,4 +59,8 @@ else
     echo "requirements.txt not found. Skipping..."
 fi
 
+# Make start.sh executable
+echo "Making start.sh executable..."
+chmod +x start.sh
+
 echo "Build completed successfully!"
