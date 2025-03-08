@@ -1,12 +1,5 @@
 #!/bin/bash
 
-# Ensure the script is executable
-if [ ! -x "$0" ]; then
-    echo "Making start.sh executable..."
-    chmod +x "$0"
-    exec "$0" "$@"
-fi
-
 # Redirect output to a log file
 exec > >(tee -a arbitrage_bot.log) 2>&1
 
