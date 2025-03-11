@@ -1,19 +1,30 @@
 services:
-  - type: worker  # Explicitly set the service type to worker
+  - type: worker
     name: arbitrage-bot
     env: python
     buildCommand: "./build.sh"
-    startCommand: "./start.sh"  # Use the start script
+    startCommand: "./start.sh"
+    plan: starter
+    autoDeploy: false
     envVars:
       - key: HEARTBEAT_INTERVAL
-        value: "60"
+        value: "180"  # 3 minutes
+      - key: SCRAPE_INTERVAL
+        value: "120"  # 2 minutes
       - key: SENDER_EMAIL
-        value: "social.marketing638@gmail.com"
+        sync: false
       - key: SENDER_PASSWORD
-        value: "sbhb wscc dbua qsho"
+        sync: false 
       - key: RECEIVER_EMAIL
-        value: "Ashishsharmaa2007@gmail.com"
+        sync: false
       - key: SMTP_SERVER
         value: "smtp.gmail.com"
       - key: SMTP_PORT
         value: "465"
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: TZ
+        value: "America/Toronto"  # Set to Canadian timezone
+    scaling:
+      minInstances: 1
+      maxInstances: 1
