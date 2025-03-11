@@ -1,6 +1,7 @@
 selenium==4.29.0
 beautifulsoup4==4.13.3
 requests==2.32.3
-schedule==1.2.0
 python-dotenv==1.0.0
 webdriver-manager==4.0.0
+retry==0.9.2
+# Remove schedule as we're using built-in time.sleep instead
